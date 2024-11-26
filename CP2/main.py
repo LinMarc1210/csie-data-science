@@ -38,19 +38,45 @@ target_column = ['Power(mW)']
 
 # 載入1~17 所有 location 的 AVG(完整)，但要加上sensor_id
 SourceData = pd.DataFrame()
+
 for i in range(1,18):
   s = str(i)
   if i < 10: 
     s = '0' + s
-  DataName = os.getcwd() + f'\\ExampleTrainData(AVG)\\AvgDATA_{s}.csv'
-  
-  if os.path.exists(DataName):
-    temp_data = pd.read_csv(DataName, encoding='utf-8')
-    temp_data['sensor_id'] = i
-    SourceData = pd.concat([SourceData, temp_data], axis=0)
-print(SourceData.head())
-# 透過 describe 發現 WindSpeed 過於不平均，pressure 幾乎都一樣
-SourceData.describe()[features_columns]    
+  Avg_DataName = os.getcwd() + f'\\ExampleTrainData(AVG)\\AvgDATA_{s}.csv'
+  Incomplete_Avg_DataName = os.getcwd() + f'\\ExampleTrainData(IncompleteAVG)\\IncompleteAvgDATA_{s}.csv'
+
+  if os.path.exists(Avg_DataName):
+    Avg_temp_data = pd.read_csv(Avg_DataName, encoding='utf-8')
+    Incomplete_Avg_temp_data = pd.read_csv(Incomplete_Avg_DataName, encoding='utf-8')
+    # 先結合AvgDATA和IncompleteAvgDATA
+    combined_df = pd.concat([Avg_temp_data, Incomplete_Avg_temp_data])
+
+    combined_df['Serial'] = combined_df['Serial'].astype(str)
+    #為了排序先加一個Timestamp(之後要刪掉)
+    combined_df['Timestamp'] = pd.to_datetime(combined_df['Serial'].str[:12], format='%Y%m%d%H%M')
+    #為了計算是不是每一天都是60筆資料先加一個Date(之後要刪掉)
+    combined_df['Date'] = combined_df['Timestamp'].dt.date  # Extract date only for grouping
+
+    # 將同一天的資料整理成一組，計算裡面是否有60筆。最後篩選出有60筆資料的天數
+    grouped = combined_df.groupby('Date').size()
+    valid_dates_60 = grouped[grouped == 60].index 
+    
+    filtered_df_60 = combined_df[combined_df['Date'].isin(valid_dates_60)]
+
+    filtered_df_60_sorted = filtered_df_60.sort_values(by='Timestamp').reset_index(drop=True)
+    
+    filtered_df_60_sorted['sensor_id'] = i
+
+    SourceData = pd.concat([SourceData, filtered_df_60_sorted], axis=0)
+
+SourceData = SourceData.drop(columns=['Timestamp']).drop(columns=['Date']).reset_index(drop=True)
+print(SourceData.describe())
+# 透過 describe 發現 WindSpeed 過於不平均，pressure 幾乎都一樣 
+print(SourceData.tail(n=2))
+print(SourceData.shape[0])
+print(SourceData.count())
+print(F"{len(SourceData)}筆資料")
 
 
 #%%
@@ -73,9 +99,9 @@ def feature_engineering(data, scaler=None, fit_scaler=True):
     # xgb_X_train['Day'] = data['Serial'].astype(str).str[6:8].astype(int)
     # xgb_X_train['Hour'] = data['Serial'].astype(str).str[8:10].astype(int)
     # xgb_X_train['Minute'] = data['Serial'].astype(str).str[10:12].astype(int)
-    features_columns = [
-        'Pressure(hpa)', 'Temperature(°C)', 'Humidity(%)', 'Sunlight(Lux)',
-    ]
+    # features_columns = [
+    #     'Pressure(hpa)', 'Temperature(°C)', 'Humidity(%)', 'Sunlight(Lux)',
+    # ]
 
     # 4. 資料正規化：LSTM (僅用來預測特徵值) + 迴歸分析 (預測最終結果)
     Regression_X_train = xgb_X_train[features_columns].values
@@ -142,13 +168,15 @@ unique_ids = SourceData['sensor_id'].unique()
 for sid in unique_ids:
   print(f"Training model for sensor_id: {sid}")
   # 相同的 sensor_id 一起訓練，但 sensor_id 本人要拿掉
-  temp_data = AllOutPut_MinMax_df[AllOutPut_MinMax_df['sensor_id'] == sid].drop(columns=['sensor_id']).values
+  Avg_temp_data = AllOutPut_MinMax_df[AllOutPut_MinMax_df['sensor_id'] == sid].drop(columns=['sensor_id']).values
   temp_X_train = []
   temp_y_train = []
   #設定每i-12筆資料(X_train)就對應到第i筆資料(y_train)
-  for i in range(LookBackNum, len(temp_data)):
-    temp_X_train.append(temp_data[i-LookBackNum:i, :])
-    temp_y_train.append(temp_data[i, :])
+  for i in range(LookBackNum, len(Avg_temp_data)):
+    if i % 60 == 0:
+       i = i +12
+    temp_X_train.append(Avg_temp_data[i-LookBackNum:i, :])
+    temp_y_train.append(Avg_temp_data[i, :])
   temp_X_train = np.array(temp_X_train)
   temp_y_train = np.array(temp_y_train)
   #Reshaping for LSTM
@@ -175,18 +203,18 @@ Regression_y_train = SourceData[target_column].values
 RegressionModel = LinearRegression()
 RegressionModel.fit(Regression_X_train, Regression_y_train)
 # breakpoint()
-RandomForestModel = RandomForestRegressor(n_estimators=100, random_state=42)
-RandomForestModel.fit(Regression_X_train, Regression_y_train)
+# RandomForestModel = RandomForestRegressor(n_estimators=100, random_state=42)
+# RandomForestModel.fit(Regression_X_train, Regression_y_train)
 
-XGBModel = XGBRegressor(objective='reg:squarederror', n_estimators=100)
-XGBModel.fit(Regression_X_train, Regression_y_train)
-features = XGBModel.feature_importances_
-for i, im in enumerate(features):
-  print(f'{features_columns[i]}\t\t: {im}')
+# XGBModel = XGBRegressor(objective='reg:squarederror', n_estimators=100)
+# XGBModel.fit(Regression_X_train, Regression_y_train)
+# features = XGBModel.feature_importances_
+# for i, im in enumerate(features):
+#   print(f'{features_columns[i]}\t\t: {im}')
 
 # 保存模型
-joblib.dump(RandomForestModel, 'RandomForest_all')
-joblib.dump(XGBModel, 'XGBoost_all')
+# joblib.dump(RandomForestModel, 'RandomForest_all')
+# joblib.dump(XGBModel, 'XGBoost_all')
 joblib.dump(RegressionModel, f'WeatherRegression_all')
 
 print('截距: ',RegressionModel.intercept_)
@@ -206,13 +234,13 @@ RandomForestModel = joblib.load('RandomForest_all')
 XGBModel = joblib.load('XGBoost_all')
 
 #載入答案
-DataName = os.getcwd()+'\\ExampleTestData\\upload_short.csv'
+Avg_DataName = os.getcwd()+'\\ExampleTestData\\upload_short.csv'
 HeaderName = os.getcwd()+'\\ExampleTestData\\Title.txt'
 header = []
 with open(HeaderName, 'r', encoding='utf-8') as f:
   header = f.readline().strip().split(',')
   
-SourceData = pd.read_csv(DataName, header=None, encoding='utf-8')
+SourceData = pd.read_csv(Avg_DataName, header=None, encoding='utf-8')
 SourceData.columns = header
 target = ['序號']
 EXquestion = SourceData[target].values     # 所有題目的14碼序號(9600行)
@@ -230,8 +258,8 @@ while(count < len(EXquestion)):
     strLocationCode = '0'+LocationCode
     
   # 載入此題對應的 IncompleteAVG (因為題目的7:00~8:59 都在 IncompleteAVG 裡面)
-  DataName = os.getcwd()+'\\ExampleTrainData(IncompleteAVG)\\IncompleteAvgDATA_'+ strLocationCode +'.csv'
-  SourceData = pd.read_csv(DataName, encoding='utf-8')
+  Avg_DataName = os.getcwd()+'\\ExampleTrainData(IncompleteAVG)\\IncompleteAvgDATA_'+ strLocationCode +'.csv'
+  SourceData = pd.read_csv(Avg_DataName, encoding='utf-8')
   SourceData['sensor_id'] = LocationCode
   
   # 在TestData上面套用一樣的特徵工程，取出序號欄和其他特徵欄
@@ -262,9 +290,10 @@ while(count < len(EXquestion)):
     # 再拿LSTM預測的特徵，集成學習預測發電量
     # 使用集成模型進行預測
     linear_pred = RegressionModel.predict(predicted)
-    rf_pred = RandomForestModel.predict(predicted)
-    xgb_pred = XGBModel.predict(predicted)
-    final_prediction = (linear_pred + rf_pred + xgb_pred) / 3
+    # rf_pred = RandomForestModel.predict(predicted)
+    # xgb_pred = XGBModel.predict(predicted)
+    # final_prediction = (linear_pred + rf_pred + xgb_pred) / 3
+    final_prediction = linear_pred
     PredictPower.append(np.round(final_prediction, 2).flatten())
     
   # 每天有48行預測，+48 換到下一天
