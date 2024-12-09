@@ -15,8 +15,8 @@ This project aims to predict oil prices using insights gathered from global news
 ### Tools and Technologies
 
 - **News API**: [Newscatcher API](https://newscatcherapi.com/) for real-time news retrieval.
-- **Programming Language**: Python.
-- **Libraries**: pandas, NumPy, scikit-learn, matplotlib, and other data analysis and visualization tools.
+- **Programming Language**: Python
+- **Libraries**: pandas, NumPy, scikit-learn, matplotlib, torch and other data analysis and visualization tools.
 - **Deployment**: Hosted on [GitHub Pages](https://pages.github.com/) (or other public hosting).
 
 ### How to Use
@@ -26,22 +26,15 @@ This project aims to predict oil prices using insights gathered from global news
    git clone https://github.com/your-username/oil-price-prediction.git
 
 2. Install the necessary dependencies:
-   ```pip install -r requirements.txt
+   ```bash
+   pip install -r requirements.txt
 3. Run the installation:
-   ```python main.py
+   ```bash
+   python main.py
 4. View the output, including predictions and trend visualizations, in your browser or terminal.
 
 ### Acknowledgments
-This project utilizes the Newscatcher API to fetch news articles. Special thanks to their team for providing this powerful tool to the developer community.
-
-### License
-This project is open-source and available under the MIT License.
+This project utilizes the [Newscatcher API](https://newscatcherapi.com/) to fetch news articles. Special thanks to their team for providing this powerful tool to the developer community.
 
 ### Contact
 For questions or collaboration, feel free to reach out via email or GitHub.
-
-
-### Visit Newscatcher API: Steps to Proceed
-1. Replace `your-username` with your GitHub username in the clone URL.
-2. Add detailed instructions in `requirements.txt` and `main.py` files.
-3. Ensure the README is publicly accessible and includes the Newscatcher API link prominently.
