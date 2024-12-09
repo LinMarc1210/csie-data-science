@@ -24,3 +24,24 @@ This project aims to predict oil prices using insights gathered from global news
 1. Clone this repository to your local machine:
    ```bash
    git clone https://github.com/your-username/oil-price-prediction.git
+
+2. Install the necessary dependencies:
+   ```pip install -r requirements.txt
+3. Run the installation:
+   ```python main.py
+4. View the output, including predictions and trend visualizations, in your browser or terminal.
+
+### Acknowledgments
+This project utilizes the Newscatcher API to fetch news articles. Special thanks to their team for providing this powerful tool to the developer community.
+
+### License
+This project is open-source and available under the MIT License.
+
+### Contact
+For questions or collaboration, feel free to reach out via email or GitHub.
+
+
+### Visit Newscatcher API: Steps to Proceed
+1. Replace `your-username` with your GitHub username in the clone URL.
+2. Add detailed instructions in `requirements.txt` and `main.py` files.
+3. Ensure the README is publicly accessible and includes the Newscatcher API link prominently.
