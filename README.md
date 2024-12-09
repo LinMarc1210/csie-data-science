@@ -23,7 +23,7 @@ This project aims to predict oil prices using insights gathered from global news
 
 1. Clone this repository to your local machine:
    ```bash
-   git clone https://github.com/your-username/oil-price-prediction.git
+   git clone https://github.com/LinMarc1210/oil-price-prediction.git
 
 2. Install the necessary dependencies:
    ```bash
