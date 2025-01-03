@@ -28,7 +28,6 @@ month_map = {
 }
 for full, short in month_map.items():
     data['date'] = data['date'].str.replace(full, short)
-    
 
 
 
@@ -44,13 +43,14 @@ def preprocess_vader(df):
     results_df = pd.concat([df, results_df], axis=1)
     return results_df
     
-df = pd.read_csv('titles.csv')
-df = preprocess_vader(df)
-print(df)
+data = preprocess_vader(data)
+print(data)
 
 #%%
-vader_df = df.groupby(['date']).agg({'neg': 'sum', 'neu': 'sum', 'pos': 'sum', 'compound': 'sum'}).reset_index()
-vader_df
+vader_df = data.groupby(['date']).agg({'neg': 'sum', 'neu': 'sum', 'pos': 'sum', 'compound': 'sum'}).reset_index()
+vader_df['date'] = pd.to_datetime(vader_df['date'])
+vader_df = vader_df.sort_values(by='date')
+print(vader_df)
 
 
 #%%
@@ -132,10 +132,12 @@ daily_topic_distributions = compute_daily_topic_distribution(grouped_data, lda_m
 
 
 # %%
-# print(daily_topic_distributions)
 
 lda_dist_dict = {f'Topic {i+1}': [daily_topic_distributions[date][0][i] for date in daily_topic_distributions] for i in range(n_topics)}
 lda_df = pd.DataFrame(lda_dist_dict)
 final_df = pd.concat([vader_df, lda_df], axis=1)
+# vader_df.to_csv("vader.csv", index=False)
+# lda_df.to_csv("lda.csv", index=False)
 final_df.to_csv('nlp.csv', index=False)
+# %%
 # %%
