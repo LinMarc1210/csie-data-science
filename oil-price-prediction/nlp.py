@@ -136,8 +136,17 @@ daily_topic_distributions = compute_daily_topic_distribution(grouped_data, lda_m
 lda_dist_dict = {f'Topic {i+1}': [daily_topic_distributions[date][0][i] for date in daily_topic_distributions] for i in range(n_topics)}
 lda_df = pd.DataFrame(lda_dist_dict)
 final_df = pd.concat([vader_df, lda_df], axis=1)
-# vader_df.to_csv("vader.csv", index=False)
-# lda_df.to_csv("lda.csv", index=False)
+
+# 補值：補上缺失的天數
+full_date_range = pd.date_range(start=final_df['date'].min(), end=final_df['date'].max(), freq='D')
+full_date_df = pd.DataFrame({'date': full_date_range})
+final_df = pd.merge(full_date_df, final_df, on='date', how='left')
+# 填充缺失值（目前全用 0）
+final_df = final_df.fillna(0)
+final_df = final_df[:-1]  # 刪除最後一行 2024/12/14 (配合數值型資料)
 final_df.to_csv('nlp.csv', index=False)
-# %%
+
+with open('nlp.txt', 'w', encoding='utf-8') as f:
+    for topic in global_topics:
+        f.write(topic + '\n')
 # %%
