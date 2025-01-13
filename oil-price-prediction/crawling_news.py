@@ -219,7 +219,9 @@ if __name__ == "__main__":
 
         crawl("2020","2021")
         first_time = False
-        crawl("2022","2024")
+        crawl("2022","2022")
+        crawl("2023","2023")
+        crawl("2024","2024")
     
     except Exception as e:
         print(f"出現錯誤：{e}")
